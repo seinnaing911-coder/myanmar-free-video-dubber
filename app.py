@@ -573,7 +573,6 @@ def main():
     if st.button("🎙️ မြန်မာအသံနဲ့ Dubbing လုပ်မယ်", type="primary", disabled=uploaded is None):
         if not (grok_key or groq_key):
             st.info("API key မတွေ့ပါ။ Free local Whisper mode ကို အသုံးပြုနေပါတယ်။ ပထမဆုံး run မှာ Whisper model download လုပ်ရနိုင်ပါတယ်။")
-            st.stop()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             work = Path(temp_dir)

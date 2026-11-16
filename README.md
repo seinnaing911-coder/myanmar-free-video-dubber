@@ -40,3 +40,5 @@ Free mode has no AI API bill, but the first local Whisper run downloads a model 
 - Blur areas are rectangles drawn on the selected preview frame. Their time range controls when the blur appears.
 - Speech recognition timestamps may not be perfect. Very long Burmese lines can be shortened by fitting them into the available slot.
 - Streamlit Cloud CPU, memory, execution time, network access and provider quotas can limit large-video processing.
+
+Free mode does not require `XAI_API_KEY` or `GROQ_API_KEY`; it uses local faster-whisper, free translation, and Edge TTS. The app must be allowed to process without an API key.
