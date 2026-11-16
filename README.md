@@ -1,6 +1,6 @@
 # Myanmar Free Video Dubber
 
-Streamlit app: one video upload, timestamped speech recognition, Burmese translation and TTS, plus manual blur and subtitle styling.
+Streamlit app: one video upload, timestamped speech recognition, Burmese translation and TTS, producing a clean dubbed MP4 with the original audio removed.
 
 ## Included
 - One MP4 / MOV / MKV / WEBM upload.
@@ -9,9 +9,7 @@ Streamlit app: one video upload, timestamped speech recognition, Burmese transla
 - Grok TTS first, with Burmese Edge TTS voices (Nilar and Thiha) as fallback.
 - No-key Free mode using a tiny local Whisper model, free web translation, and Edge TTS.
 - Original audio is removed from the final video; only generated Burmese voice is mixed.
-- Preview and manually drawn rectangular blur regions. Save multiple regions with individual start/end times and blur strength.
-- Subtitle font size, color, and vertical position settings.
-- MP4, MP3 and SRT exports.
+- MP4 and MP3 exports only; no preview, blur, or burned subtitles.
 - Speech segments are fitted into their time slots to reduce overlap.
 
 ## Deploy
@@ -37,7 +35,6 @@ Free mode has no AI API bill, but the first local Whisper run downloads a model 
 
 ## Notes
 - The uploaded video must contain an audio track with speech for transcription.
-- Blur areas are rectangles drawn on the selected preview frame. Their time range controls when the blur appears.
 - Speech recognition timestamps may not be perfect. Very long Burmese lines can be shortened by fitting them into the available slot.
 - Streamlit Cloud CPU, memory, execution time, network access and provider quotas can limit large-video processing.
 
