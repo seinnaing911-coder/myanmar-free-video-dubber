@@ -256,8 +256,14 @@ def call_translation_api(prompt, provider, api_key):
 
 
 def free_translate_text(text):
-    """Use the free Google Translate web endpoint through deep-translator."""
-    from deep_translator import GoogleTranslator
+    """Use MyMemory Burmese translation first, then Google as a fallback."""
+    from deep_translator import GoogleTranslator, MyMemoryTranslator
+    try:
+        result = MyMemoryTranslator(source="english", target="burmese").translate(text)
+        if contains_burmese(result):
+            return result.strip()
+    except Exception:
+        pass
     return GoogleTranslator(source="auto", target="my").translate(text).strip()
 
 
@@ -280,7 +286,7 @@ def free_translate_segments(segments, progress_callback=None):
             progress_callback((index + 1) / len(segments))
     if errors:
         raise RuntimeError("မြန်မာဘာသာပြန် မအောင်မြင်ပါ။ မူရင်းစာသားကို အသံမပြောင်းပါ။ " + " | ".join(errors[:3]))
-    return translated, "Free Google Translate"
+    return translated, "Free MyMemory / Google Translate"
 
 
 def translate_segments(segments, grok_key, gemini_key, openrouter_key, progress_callback=None):
