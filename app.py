@@ -219,6 +219,10 @@ def parse_json_array(raw):
     return data
 
 
+def contains_burmese(text):
+    return bool(re.search(r"[\u1000-\u109F]", str(text or "")))
+
+
 def call_grok_api(prompt, api_key):
     response = requests.post(
         "https://api.x.ai/v1/chat/completions",
@@ -259,14 +263,23 @@ def free_translate_text(text):
 
 def free_translate_segments(segments, progress_callback=None):
     translated = []
+    errors = []
     for index, seg in enumerate(segments):
         try:
             burmese = free_translate_text(seg["text"])
-        except Exception:
-            burmese = seg["text"]
-        translated.append({**seg, "burmese": burmese or seg["text"]})
+            if not contains_burmese(burmese):
+                raise RuntimeError("translation result does not contain Myanmar characters")
+        except Exception as exc:
+            errors.append(f"အပိုင်း {index + 1}: {str(exc)[:120]}")
+            burmese = ""
+        if not burmese:
+            translated.append({**seg, "burmese": ""})
+        else:
+            translated.append({**seg, "burmese": burmese})
         if progress_callback:
             progress_callback((index + 1) / len(segments))
+    if errors:
+        raise RuntimeError("မြန်မာဘာသာပြန် မအောင်မြင်ပါ။ မူရင်းစာသားကို အသံမပြောင်းပါ။ " + " | ".join(errors[:3]))
     return translated, "Free Google Translate"
 
 
@@ -317,8 +330,9 @@ def translate_segments(segments, grok_key, gemini_key, openrouter_key, progress_
         for i, seg in enumerate(batch):
             burmese = mapping.get(i, "")
             if not burmese:
-                # Preserve the timeline rather than silently dropping a segment.
-                burmese = seg["text"]
+                raise RuntimeError(f"AI ဘာသာပြန်ရလဒ်တွင် အပိုင်း {i + 1} မပါပါ။")
+            if not contains_burmese(burmese):
+                raise RuntimeError(f"AI ဘာသာပြန်ရလဒ်သည် မြန်မာစာမဟုတ်ပါ (အပိုင်း {i + 1})။")
             translated.append({**seg, "burmese": burmese})
         if progress_callback:
             progress_callback(min(1.0, (start + len(batch)) / len(segments)))
@@ -353,6 +367,8 @@ def build_voice_track(segments, voice, workdir, duration, progress_callback=None
     prepared = []
     cursor = 0.0
     for index, seg in enumerate(segments):
+        if not contains_burmese(seg.get("burmese", "")):
+            raise RuntimeError(f"အပိုင်း {index + 1} တွင် မြန်မာစာမရှိပါ။ Final video မထုတ်ပါ။")
         out = tts_dir / f"voice_{index:04d}.mp3"
         asyncio.run(tts_save(seg["burmese"], voice, out))
         if not out.exists() or out.stat().st_size < 1000:
