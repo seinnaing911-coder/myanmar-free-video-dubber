@@ -6,7 +6,7 @@ Streamlit app: one video upload, timestamped speech recognition, Burmese transla
 - One MP4 / MOV / MKV / WEBM upload.
 - Grok Voice batch transcription with Groq Whisper and local faster-whisper fallbacks.
 - Grok translation first, then the existing Gemini/OpenRouter fallback.
-- Grok TTS first, with Burmese Edge TTS voices (Nilar and Thiha) as fallback.
+- Burmese Edge TTS voices (Nilar and Thiha) for reliable Myanmar speech output.
 - No-key Free mode using a tiny local Whisper model, free web translation, and Edge TTS.
 - Original audio is removed from the final video; only generated Burmese voice is mixed.
 - Final dubbed video preview plus MP4 and MP3 exports; no source preview, blur, or burned subtitles.
@@ -29,7 +29,7 @@ Keep API keys private. Do not commit real keys to GitHub.
 
 ## Provider order
 
-The app uses Grok as the primary provider when `XAI_API_KEY` is configured. Grok Voice STT transcribes the uploaded audio, Grok translates the timestamped segments into concise spoken Burmese, and Grok TTS generates the replacement voice. If no API key is configured, the app runs a no-key Free mode using local faster-whisper, free web translation, and Edge TTS. If Grok fails, it falls back to Groq, local Whisper, free translation, or Edge TTS. The final MP4 never maps the original audio track; only the generated Burmese voice is included.
+The app uses Grok as the primary provider when `XAI_API_KEY` is configured. Grok Voice STT transcribes the uploaded audio and Grok translates the timestamped segments into concise spoken Burmese. Burmese Edge TTS generates the replacement voice reliably in both API and no-key Free modes. If no API key is configured, the app runs a no-key Free mode using local faster-whisper, free web translation, and Edge TTS. If Grok fails, it falls back to Groq, local Whisper, or free translation. The final MP4 never maps the original audio track; only the generated Burmese voice is included.
 
 Free mode has no AI API bill, but the first local Whisper run downloads a model and CPU processing is slower. Public free translation endpoints can also rate-limit heavy use. For the fastest mode, configure `XAI_API_KEY` or `GROQ_API_KEY`.
 

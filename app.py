@@ -301,18 +301,6 @@ async def tts_save(text, voice, path):
     await edge_tts.Communicate(text, voice).save(str(path))
 
 
-def grok_tts_save(text, api_key, path, voice_id=XAI_TTS_VOICE):
-    response = requests.post(
-        "https://api.x.ai/v1/tts",
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json={"text": text, "voice_id": voice_id, "language": XAI_TTS_LANGUAGE},
-        timeout=300,
-    )
-    if response.status_code >= 400:
-        raise RuntimeError(f"Grok TTS error {response.status_code}: {response.text[:700]}")
-    path.write_bytes(response.content)
-
-
 def stamp(seconds):
     milliseconds = max(0, int(seconds * 1000))
     hours, rem = divmod(milliseconds, 3600000)
@@ -330,21 +318,16 @@ def write_srt(segments, duration, path):
     path.write_text("\n".join(blocks), encoding="utf-8-sig")
 
 
-def build_voice_track(segments, voice, workdir, duration, progress_callback=None,
-                      grok_key=""):
+def build_voice_track(segments, voice, workdir, duration, progress_callback=None):
     tts_dir = workdir / "tts_segments"
     tts_dir.mkdir(exist_ok=True)
     prepared = []
     cursor = 0.0
     for index, seg in enumerate(segments):
         out = tts_dir / f"voice_{index:04d}.mp3"
-        if grok_key:
-            try:
-                grok_tts_save(seg["burmese"], grok_key, out)
-            except Exception:
-                asyncio.run(tts_save(seg["burmese"], voice, out))
-        else:
-            asyncio.run(tts_save(seg["burmese"], voice, out))
+        asyncio.run(tts_save(seg["burmese"], voice, out))
+        if not out.exists() or out.stat().st_size < 1000:
+            raise RuntimeError("မြန်မာ Edge TTS အသံဖိုင် မထွက်လာပါ။ Network သို့မဟုတ် TTS service ကို စစ်ပါ။")
         tts_duration = probe_duration(out)
         requested_start = max(0.0, min(duration, float(seg["start"])))
         start = max(requested_start, cursor)
@@ -476,8 +459,7 @@ def main():
                 status.info("မြန်မာအသံ အပိုင်းလိုက် ဖန်တီးပြီး မူရင်းအချိန်နဲ့ ညှိနေသည်...")
                 prepared_audio = build_voice_track(
                     segments, voice, work, duration,
-                    lambda fraction: set_progress(62 + fraction * 20, "မြန်မာအသံ ဖန်တီးနေသည်"),
-                    grok_key=grok_key)
+                    lambda fraction: set_progress(62 + fraction * 20, "မြန်မာအသံ ဖန်တီးနေသည်"))
                 set_progress(84, "မြန်မာအသံ ပြင်ဆင်ပြီးပါပြီ")
 
                 status.info("မူရင်းအသံ Track ကို ဖယ်ရှားပြီး မြန်မာအသံတစ်ခုတည်း ထည့်နေသည်...")
