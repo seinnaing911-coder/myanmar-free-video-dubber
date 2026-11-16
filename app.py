@@ -401,13 +401,20 @@ def build_voice_track(segments, voice, workdir, duration, progress_callback=None
             available = max(0.25, next_start - start)
         else:
             available = max(0.25, duration - start)
-        speed = min(2.0, max(1.0, tts_duration / available))
+        speed = max(1.0, tts_duration / available)
         adjusted = out
         adjusted_duration = tts_duration / speed
         if speed > 1.02 or adjusted_duration > available:
             adjusted = tts_dir / f"voice_{index:04d}_fit.mp3"
+            tempo_filters = []
+            remaining_speed = speed
+            while remaining_speed > 2.0:
+                tempo_filters.append("atempo=2.0")
+                remaining_speed /= 2.0
+            tempo_filters.append(f"atempo={max(1.0, remaining_speed):.3f}")
             run_cmd([ffmpeg_path(), "-y", "-i", str(out), "-af",
-                     f"atempo={speed:.3f},atrim=duration={available:.3f},asetpts=PTS-STARTPTS",
+                     ",".join(tempo_filters) +
+                     f",atrim=duration={available:.3f},asetpts=PTS-STARTPTS",
                      "-c:a", "libmp3lame", "-b:a", "96k", str(adjusted)], timeout=180)
         prepared.append((adjusted, int(start * 1000)))
         cursor = min(duration, start + min(available, adjusted_duration))
