@@ -12,6 +12,7 @@ Streamlit app: one video upload, timestamped speech recognition, Burmese transla
 - Final dubbed video preview plus MP4 and MP3 exports; no source preview, blur, or burned subtitles.
 - Speech segments are fitted into their time slots to reduce overlap.
 - Burmese-script validation blocks output when translation fails, instead of reading the original-language text with a Myanmar voice.
+- Free translation sends adjacent narration lines as context-aware chunks so names, events, and story continuity are preserved better than isolated line translation.
 
 ## Deploy
 Upload `app.py`, `requirements.txt`, `packages.txt`, and `.streamlit/config.toml` to the connected GitHub repository.

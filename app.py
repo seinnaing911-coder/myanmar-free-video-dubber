@@ -283,20 +283,21 @@ def free_translate_text(text):
 def free_translate_segments(segments, progress_callback=None):
     translated = []
     errors = []
-    for index, seg in enumerate(segments):
+    chunk_size = 6
+    for chunk_start in range(0, len(segments), chunk_size):
+        batch = segments[chunk_start:chunk_start + chunk_size]
+        source_text = "\n".join(seg["text"] for seg in batch)
         try:
-            burmese = free_translate_text(seg["text"])
-            if not contains_burmese(burmese):
-                raise RuntimeError("translation result does not contain Myanmar characters")
+            translated_text = free_translate_text(source_text)
+            lines = [line.strip() for line in translated_text.splitlines() if line.strip()]
+            if len(lines) != len(batch) or not all(contains_burmese(line) for line in lines):
+                raise RuntimeError("context translation did not preserve all line boundaries")
+            for seg, burmese in zip(batch, lines):
+                translated.append({**seg, "burmese": burmese})
         except Exception as exc:
-            errors.append(f"အပိုင်း {index + 1}: {str(exc)[:120]}")
-            burmese = ""
-        if not burmese:
-            translated.append({**seg, "burmese": ""})
-        else:
-            translated.append({**seg, "burmese": burmese})
+            errors.append(f"အပိုင်း {chunk_start + 1}: {str(exc)[:120]}")
         if progress_callback:
-            progress_callback((index + 1) / len(segments))
+            progress_callback(min(1.0, (chunk_start + len(batch)) / len(segments)))
     if errors:
         raise RuntimeError("မြန်မာဘာသာပြန် မအောင်မြင်ပါ။ မူရင်းစာသားကို အသံမပြောင်းပါ။ " + " | ".join(errors[:3]))
     return translated, "Free MyMemory autodetect"
