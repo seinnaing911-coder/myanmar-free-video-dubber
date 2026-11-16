@@ -428,7 +428,8 @@ def render_dubbed_video(source, prepared_audio, duration, output_path):
         mix_labels.append(f"[{label}]")
     filters.append("".join(mix_labels) +
                    f"amix=inputs={len(mix_labels)}:duration=first:dropout_transition=0:normalize=0,"
-                   f"atrim=duration={duration:.3f},asetpts=PTS-STARTPTS[aout]")
+                   f"atrim=duration={duration:.3f},asetpts=PTS-STARTPTS,"
+                   "loudnorm=I=-16:TP=-1.5:LRA=7[aout]")
 
     args += ["-filter_complex", ";".join(filters)]
     args += ["-map", "0:v:0", "-map", "[aout]",
