@@ -33,6 +33,35 @@ def run_cmd(args, timeout=900):
     return p.stdout.strip()
 
 
+def validate_final_video(path, expected_duration):
+    if not path.exists() or path.stat().st_size < 10_000:
+        raise RuntimeError("Final MP4 ဖိုင်မပြည့်စုံပါ။ Output file size ကို စစ်ဆေးပါ။")
+    raw = run_cmd(["ffprobe", "-v", "error", "-show_entries",
+                   "stream=codec_type,duration", "-of", "json", str(path)])
+    streams = json.loads(raw).get("streams") or []
+    video_streams = [s for s in streams if s.get("codec_type") == "video"]
+    audio_streams = [s for s in streams if s.get("codec_type") == "audio"]
+    if not video_streams:
+        raise RuntimeError("Final MP4 ထဲတွင် Video stream မတွေ့ပါ။")
+    if not audio_streams:
+        raise RuntimeError("Final MP4 ထဲတွင် မြန်မာအသံ Audio stream မတွေ့ပါ။")
+    audio_duration = float(audio_streams[0].get("duration") or 0)
+    if audio_duration < 0.25:
+        raise RuntimeError("Final MP4 Audio duration မမှန်ပါ။ အသံဖိုင်မထွက်လာနိုင်ပါ။")
+    probe = subprocess.run(
+        [ffmpeg_path(), "-i", str(path), "-af", "volumedetect", "-f", "null", "-"],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=300)
+    volume_text = probe.stdout + probe.stderr
+    match = re.search(r"mean_volume:\s*(-?[0-9.]+) dB", volume_text)
+    mean_volume = float(match.group(1)) if match else -100.0
+    if mean_volume <= -50:
+        raise RuntimeError("Final MP4 အသံသည် silent ဖြစ်နေပါသည်။")
+    duration_note = f"{audio_duration:.1f}s audio, mean volume {mean_volume:.1f} dB"
+    if expected_duration > 0 and audio_duration < min(0.25, expected_duration):
+        raise RuntimeError("Final MP4 အသံကြာချိန် မပြည့်စုံပါ။")
+    return duration_note
+
+
 def ffmpeg_path():
     path = shutil.which("ffmpeg")
     if not path:
@@ -464,11 +493,14 @@ def main():
 
                 status.info("မူရင်းအသံ Track ကို ဖယ်ရှားပြီး မြန်မာအသံတစ်ခုတည်း ထည့်နေသည်...")
                 render_dubbed_video(video, prepared_audio, duration, output_mp4)
+                validation_note = validate_final_video(output_mp4, duration)
                 # Export a standalone MP3 from the final MP4 audio, ensuring it matches the final mix.
                 run_cmd([ffmpeg_path(), "-y", "-i", str(output_mp4), "-vn", "-c:a", "libmp3lame",
                          "-b:a", "160k", str(output_mp3)], timeout=1200)
+                if not output_mp3.exists() or output_mp3.stat().st_size < 1000:
+                    raise RuntimeError("MP3 အသံဖိုင် မပြည့်စုံပါ။")
                 set_progress(100, "ပြီးပါပြီ")
-                status.success("Dubbing ပြီးပါပြီ။ Final MP4 တွင် မူရင်းအသံ Track မပါဝင်ပါ။")
+                status.success(f"Dubbing အောင်မြင်ပါပြီ။ Final audio စစ်ဆေးပြီးပါပြီ ({validation_note})")
                 st.subheader("Final Myanmar Dubbed Video")
                 st.video(str(output_mp4))
                 st.download_button("⬇️ မြန်မာအသံ Video (MP4)", output_mp4.read_bytes(),
