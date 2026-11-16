@@ -9,7 +9,7 @@ Streamlit app: one video upload, timestamped speech recognition, Burmese transla
 - Grok TTS first, with Burmese Edge TTS voices (Nilar and Thiha) as fallback.
 - No-key Free mode using a tiny local Whisper model, free web translation, and Edge TTS.
 - Original audio is removed from the final video; only generated Burmese voice is mixed.
-- MP4 and MP3 exports only; no preview, blur, or burned subtitles.
+- Final dubbed video preview plus MP4 and MP3 exports; no source preview, blur, or burned subtitles.
 - Speech segments are fitted into their time slots to reduce overlap.
 
 ## Deploy

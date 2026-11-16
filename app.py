@@ -487,6 +487,8 @@ def main():
                          "-b:a", "160k", str(output_mp3)], timeout=1200)
                 set_progress(100, "ပြီးပါပြီ")
                 status.success("Dubbing ပြီးပါပြီ။ Final MP4 တွင် မူရင်းအသံ Track မပါဝင်ပါ။")
+                st.subheader("Final Myanmar Dubbed Video")
+                st.video(str(output_mp4))
                 st.download_button("⬇️ မြန်မာအသံ Video (MP4)", output_mp4.read_bytes(),
                                    file_name="myanmar_dubbed_video.mp4", mime="video/mp4")
                 st.download_button("⬇️ မြန်မာအသံ (MP3)", output_mp3.read_bytes(),
