@@ -1,4 +1,5 @@
 import os, re, json, time, tempfile, subprocess, shutil, asyncio
+from functools import lru_cache
 from pathlib import Path
 
 import streamlit as st
@@ -255,16 +256,28 @@ def call_translation_api(prompt, provider, api_key):
     return response.json()["choices"][0]["message"]["content"]
 
 
+@lru_cache(maxsize=256)
 def free_translate_text(text):
-    """Use MyMemory Burmese translation first, then Google as a fallback."""
-    from deep_translator import GoogleTranslator, MyMemoryTranslator
-    try:
-        result = MyMemoryTranslator(source="english", target="burmese").translate(text)
-        if contains_burmese(result):
-            return result.strip()
-    except Exception:
-        pass
-    return GoogleTranslator(source="auto", target="my").translate(text).strip()
+    """Translate to Burmese through MyMemory autodetect without Google rate limits."""
+    errors = []
+    for attempt in range(3):
+        try:
+            response = requests.get(
+                "https://api.mymemory.translated.net/get",
+                params={"q": text, "langpair": "autodetect|my-MM"},
+                headers={"User-Agent": "Myanmar-Free-Video-Dubber/1.0"},
+                timeout=45,
+            )
+            data = response.json()
+            result = ((data.get("responseData") or {}).get("translatedText") or "").strip()
+            if response.ok and data.get("responseStatus") == 200 and contains_burmese(result):
+                return result
+            errors.append(str(data.get("responseDetails") or result or response.status_code))
+        except Exception as exc:
+            errors.append(str(exc)[:160])
+        if attempt < 2:
+            time.sleep(1.0 + attempt)
+    raise RuntimeError("MyMemory Burmese translation failed: " + " | ".join(errors[:2]))
 
 
 def free_translate_segments(segments, progress_callback=None):
@@ -286,7 +299,7 @@ def free_translate_segments(segments, progress_callback=None):
             progress_callback((index + 1) / len(segments))
     if errors:
         raise RuntimeError("မြန်မာဘာသာပြန် မအောင်မြင်ပါ။ မူရင်းစာသားကို အသံမပြောင်းပါ။ " + " | ".join(errors[:3]))
-    return translated, "Free MyMemory / Google Translate"
+    return translated, "Free MyMemory autodetect"
 
 
 def translate_segments(segments, grok_key, gemini_key, openrouter_key, progress_callback=None):
